@@ -5,6 +5,7 @@
 INSTALL_SOURCE: "online"
 
 # 可选进行系统安全加固 github.com/dev-sec/ansible-collection-hardening
+# (deprecated) 未更新上游项目，未验证最新k8s集群安装，不建议启用
 OS_HARDEN: false
 
 
@@ -33,8 +34,12 @@ K8S_VER: "__k8s_ver__"
 K8S_NODENAME: "{%- if k8s_nodename != '' -%} \
                     {{ k8s_nodename|replace('_', '-')|lower }} \
                {%- else -%} \
-                    {{ inventory_hostname }} \
+                    k8s-{{ inventory_hostname|replace('.', '-') }} \
                {%- endif -%}"
+
+# use 'K8S_NODENAME' to set hostname
+ENABLE_SETTING_HOSTNAME: true
+
 
 ############################
 # role:etcd
@@ -47,27 +52,27 @@ ETCD_WAL_DIR: ""
 ############################
 # role:runtime [containerd,docker]
 ############################
-# ------------------------------------------- containerd
-# [.]启用容器仓库镜像
+# [.]启用拉取加速镜像仓库
 ENABLE_MIRROR_REGISTRY: true
 
-# [containerd]基础容器镜像
+# [.]添加信任的私有仓库
+# 必须按照如下示例格式，协议头'http://'和'https://'不能省略
+INSECURE_REG:
+  - "http://easzlab.io.local:5000"
+  - "https://reg.yourcompany.com"
+
+# [.]基础容器镜像
 SANDBOX_IMAGE: "easzlab.io.local:5000/easzlab/pause:__pause__"
 
 # [containerd]容器持久化存储目录
 CONTAINERD_STORAGE_DIR: "/var/lib/containerd"
 
-# ------------------------------------------- docker
 # [docker]容器存储目录
 DOCKER_STORAGE_DIR: "/var/lib/docker"
 
 # [docker]开启Restful API
-ENABLE_REMOTE_API: false
+DOCKER_ENABLE_REMOTE_API: false
 
-# [docker]信任的HTTP仓库
-INSECURE_REG:
-  - "http://easzlab.io.local:5000"
-  - "https://{{ HARBOR_REGISTRY }}"
 
 ############################
 # role:kube-master
@@ -143,7 +148,7 @@ calico_ver_main: "{{ calico_ver.split('.')[0] }}.{{ calico_ver.split('.')[1] }}"
 # ------------------------------------------- cilium
 # [cilium]镜像版本
 cilium_ver: "__cilium__"
-cilium_connectivity_check: true
+cilium_connectivity_check: false
 cilium_hubble_enabled: false
 cilium_hubble_ui_enabled: false
 
@@ -178,9 +183,8 @@ metricsserver_install: "yes"
 metricsVer: "__metrics__"
 
 # dashboard 自动安装
-dashboard_install: "yes"
+dashboard_install: "no"
 dashboardVer: "__dashboard__"
-dashboardMetricsScraperVer: "__dash_metrics__"
 
 # prometheus 自动安装
 prom_install: "no"
@@ -212,6 +216,16 @@ nfs_path: "/data/nfs"
 network_check_enabled: false 
 network_check_schedule: "*/5 * * * *"
 
+# kubeblocks 自动安装
+kubeblocks_install: "no"
+kb_addon_mysql_install: "no"
+kb_addon_pg_install: "no"
+kb_addon_redis_install: "no"
+kb_addon_minio_install: "no"
+kb_addon_es_install: "no"
+kb_addon_mongodb_install: "no"
+
+
 ############################
 # role:harbor
 ############################
@@ -226,6 +240,4 @@ HARBOR_REGISTRY: "{{ HARBOR_DOMAIN }}:{{ HARBOR_TLS_PORT }}"
 HARBOR_SELF_SIGNED_CERT: true
 
 # install extra component
-HARBOR_WITH_NOTARY: false
 HARBOR_WITH_TRIVY: false
-HARBOR_WITH_CHARTMUSEUM: true
